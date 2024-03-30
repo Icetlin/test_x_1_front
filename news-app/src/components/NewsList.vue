@@ -1,42 +1,44 @@
 <template>
-  <div>
-    <div>
-      <label>
-        News per page:
-        <input type="number" v-model.number="newsPerPage" @input="handleNewsPerPageChange" />
-      </label>
-    </div>
-    <div>
-      <label>
-        Update interval (seconds):
-        <input type="number" v-model.number="updateInterval" @input="handleUpdateIntervalChange" />
-      </label>
-    </div>
-    <div>
-      <label>
-        Source site:
-        <input type="text" v-model="sourceSite" @input="handleSourceSiteChange" />
-      </label>
-    </div>
-    <div>
-      <label>
-        Sort by:
-        <select v-model="sort" @change="handleSortChange">
-          <option value="id">ID</option>
-          <option value="name">Name</option>
-          <option value="rating">Rating</option>
-        </select>
-      </label>
-      <label>
-        Sort order:
-        <select v-model="sortOrder" @change="handleSortOrderChange">
-          <option value="desc">Descending</option>
-          <option value="asc">Ascending</option>
-        </select>
-      </label>
-    </div>
-    <div>
-      <button @click="fetchNews">Refresh</button>
+  <div class="news-list-container">
+    <div class="news-control-block">
+      <div>
+        <label>
+          News per page:
+          <input type="number" v-model.number="newsPerPage" @input="handleNewsPerPageChange" />
+        </label>
+      </div>
+      <div>
+        <label>
+          Update interval (seconds):
+          <input type="number" v-model.number="updateInterval" @input="handleUpdateIntervalChange" />
+        </label>
+      </div>
+      <div>
+        <label>
+          Source site:
+          <input type="text" v-model="sourceSite" @input="handleSourceSiteChange" />
+        </label>
+      </div>
+      <div class="news-sort-block">
+        <label>
+          Sort by:
+          <select v-model="sort" @change="handleSortChange">
+            <option value="id">ID</option>
+            <option value="name">Name</option>
+            <option value="rating">Rating</option>
+          </select>
+        </label>
+        <label>
+          Sort order:
+          <select v-model="sortOrder" @change="handleSortOrderChange">
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
+          </select>
+        </label>
+      </div>
+      <div>
+        <button @click="fetchNews">Refresh</button>
+      </div>
     </div>
     <div v-for="newsItem in displayedNews" :key="newsItem.id">
       <NewsItem :news="newsItem" />
@@ -47,8 +49,6 @@
 </template>
 
 <script>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { useStore } from 'vuex'
 import NewsItem from './NewsItem.vue'
 import axios from 'axios'
 import { API_BASE_URL } from '@/constants'
@@ -58,149 +58,129 @@ export default {
   components: {
     NewsItem
   },
-  setup() {
-    const store = useStore()
-    const currentPage = ref(1)
-    const isLoading = ref(false)
-    let intervalId = null
+  data() {
+    return {
+      currentPage: 1,
+      isLoading: false,
+      intervalId: null
+    }
+  },
+  computed: {
+    news() {
+      return this.$store.state.news
+    },
+    newsPerPage: {
+      get() {
+        return this.$store.state.newsPerPage
+      },
+      set(value) {
+        this.$store.commit('setNewsPerPage', value)
+      }
+    },
+    updateInterval: {
+      get() {
+        return this.$store.state.updateInterval
+      },
+      set(value) {
+        this.$store.commit('setUpdateInterval', value)
+      }
+    },
+    sourceSite: {
+      get() {
+        return this.$store.state.sourceSite
+      },
+      set(value) {
+        this.$store.commit('setSourceSite', value)
+      }
+    },
+    sort: {
+      get() {
+        return this.$store.state.sort
+      },
+      set(value) {
+        this.$store.commit('setSort', value)
+      }
+    },
+    sortOrder: {
+      get() {
+        return this.$store.state.sortOrder
+      },
+      set(value) {
+        this.$store.commit('setSortOrder', value)
+      }
+    },
+    displayedNews() {
+      const startIndex = (this.currentPage - 1) * this.newsPerPage
+      const endIndex = startIndex + this.newsPerPage
 
-    const news = computed(() => store.state.news)
-
-    const newsPerPage = computed({
-      get() {
-        return store.state.newsPerPage
-      },
-      set(value) {
-        store.commit('setNewsPerPage', value)
-      }
-    })
-    const updateInterval = computed({
-      get() {
-        return store.state.updateInterval
-      },
-      set(value) {
-        store.commit('setUpdateInterval', value)
-      }
-    })
-    const sourceSite = computed({
-      get() {
-        return store.state.sourceSite
-      },
-      set(value) {
-        store.commit('setSourceSite', value)
-      }
-    })
-    const sort = computed({
-      get() {
-        return store.state.sort
-      },
-      set(value) {
-        store.commit('setSort', value)
-      }
-    })
-    const sortOrder = computed({
-      get() {
-        return store.state.sortOrder
-      },
-      set(value) {
-        store.commit('setSortOrder', value)
-      }
-    })
-
-    const displayedNews = computed(() => {
-      const startIndex = (currentPage.value - 1) * newsPerPage.value
-      const endIndex = startIndex + newsPerPage.value
-
-      const newsArray = Array.isArray(news.value) ? news.value : []
+      const newsArray = Array.isArray(this.news) ? this.news : []
       return newsArray.slice(startIndex, endIndex)
-    })
-
-    const fetchNews = async () => {
-      isLoading.value = true
-      await store.dispatch('fetchNews')
-      isLoading.value = false
     }
-
-    const handleNewsPerPageChange = () => {
-      currentPage.value = 1
-    }
-
-    const handleUpdateIntervalChange = () => {
-      stopInterval()
-      startInterval()
-    }
-
-    const handleSourceSiteChange = () => {
-      currentPage.value = 1
-    }
-
-    const handleSortChange = () => {
-      currentPage.value = 1
-    }
-
-    const handleSortOrderChange = () => {
-      currentPage.value = 1
-    }
-
-    const startInterval = () => {
-      intervalId = setInterval(() => {
-        const newRatings = getNewRatings()
-        store.commit('updateNewsRatings', newRatings)
-      }, updateInterval.value * 1000)
-    }
-
-    const stopInterval = () => {
-      clearInterval(intervalId)
-    }
-
-    const deleteNews = async (id) => {
+  },
+  methods: {
+    async fetchNews() {
+      this.isLoading = true
+      await this.$store.dispatch('fetchNews')
+      this.isLoading = false
+    },
+    handleNewsPerPageChange() {
+      this.currentPage = 1
+    },
+    handleUpdateIntervalChange() {
+      this.stopInterval()
+      this.startInterval()
+    },
+    handleSourceSiteChange() {
+      this.currentPage = 1
+    },
+    handleSortChange() {
+      this.currentPage = 1
+    },
+    handleSortOrderChange() {
+      this.currentPage = 1
+    },
+    startInterval() {
+      this.intervalId = setInterval(() => {
+        const newRatings = this.getNewRatings()
+        this.$store.commit('updateNewsRatings', newRatings)
+      }, this.updateInterval * 1000)
+    },
+    stopInterval() {
+      clearInterval(this.intervalId)
+    },
+    async deleteNews(id) {
       try {
-
         await axios.delete(`${API_BASE_URL}api/parsed_news/${id}`)
-        store.commit('setNews', news.value.filter(item => item.id !== id))
+        this.$store.commit('setNews', this.news.filter(item => item.id !== id))
       } catch (error) {
         console.error('Error deleting news:', error)
       }
-    }
-
-    const loadMore = () => {
-      currentPage.value++
-    }
-
-    const getNewRatings = () => {
-      return news.value.map(newsItem => ({
+    },
+    loadMore() {
+      this.currentPage++
+    },
+    getNewRatings() {
+      return this.news.map(newsItem => ({
         id: newsItem.id,
         rating: Math.floor(Math.random() * 11)
       }))
-    }
-
-    onMounted(() => {
-      fetchNews()
-      startInterval()
-    })
-
-    onUnmounted(() => {
-      stopInterval()
-    })
-
-    return {
-      news,
-      newsPerPage,
-      updateInterval,
-      sourceSite,
-      sort,
-      sortOrder,
-      displayedNews,
-      isLoading,
-      fetchNews,
-      handleNewsPerPageChange,
-      handleUpdateIntervalChange,
-      handleSourceSiteChange,
-      handleSortChange,
-      handleSortOrderChange,
-      deleteNews,
-      loadMore
-    }
+    },
+  },
+  mounted() {
+    this.fetchNews()
+    this.startInterval()
+  },
+  unmounted() {
+    this.stopInterval()
   }
 }
 </script>
+
+<style scoped>
+.news-control-block {
+  display: flex;
+}
+.news-sort-block {
+  display: flex;
+}
+</style>

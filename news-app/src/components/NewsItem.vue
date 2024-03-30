@@ -18,24 +18,30 @@
 </template>
 
 <script>
-import { computed, watch, ref } from 'vue'
-
 export default {
   name: 'NewsItem',
+
   props: {
     news: Object
   },
-  setup(props) {
-    const previousRating = ref(props.news.rating)
-    const isRatingUp = computed(() => {
-      return props.news.rating > previousRating.value
-    })
+  data() {
+    return {
+      previousRating: this.news.rating
+    }
+  },
 
-    watch(() => props.news.rating, (newRating, oldRating) => {
-      previousRating.value = oldRating
-    })
-
-    return {isRatingUp}
+  computed: {
+    isRatingUp() {
+      return this.news.rating > this.previousRating
+    }
+  },
+  watch: {
+    news: {
+      handler(newValue, oldValue) {
+        this.previousRating = oldValue.rating
+      },
+      deep: true
+    }
   }
 }
 </script>
