@@ -16,13 +16,15 @@
       <div>
         <label>
           Source site:
-          <input type="text" v-model="sourceSite" @input="handleSourceSiteChange" />
+          <select v-model="sourceSite" @change="handleSourceSiteChange">
+            <option v-for="(source, index) in newsSourceSites" :key="index" :value="source">{{ source }}</option>
+          </select>
         </label>
       </div>
       <div class="news-sort-block">
         <label>
           Sort by:
-          <select v-model="sort" @change="handleSortChange">
+          <select v-model="sortBy" @change="handleSortChange">
             <option value="id">ID</option>
             <option value="name">Name</option>
             <option value="rating">Rating</option>
@@ -36,149 +38,61 @@
           </select>
         </label>
       </div>
-      <div>
-        <button @click="fetchNews">Refresh</button>
-      </div>
     </div>
-    <div v-for="newsItem in displayedNews" :key="newsItem.id">
+    <div v-for="newsItem in news" :key="newsItem.id">
       <NewsItem :news="newsItem" />
-      <button @click="deleteNews(newsItem.id)">Delete</button>
     </div>
-    <div v-if="isLoading">Loading...</div>
+
   </div>
 </template>
 
-<script>
-import NewsItem from './NewsItem.vue'
-import axios from 'axios'
-import { API_BASE_URL } from '@/constants'
+<script setup>
+import {computed} from 'vue';
+import { useStore } from 'vuex';
+import NewsItem from './NewsItem.vue';
 
-export default {
-  name: 'NewsList',
-  components: {
-    NewsItem
-  },
-  data() {
-    return {
-      currentPage: 1,
-      isLoading: false,
-      intervalId: null
-    }
-  },
-  computed: {
-    news() {
-      return this.$store.state.news
-    },
-    newsPerPage: {
-      get() {
-        return this.$store.state.newsPerPage
-      },
-      set(value) {
-        this.$store.commit('setNewsPerPage', value)
-      }
-    },
-    updateInterval: {
-      get() {
-        return this.$store.state.updateInterval
-      },
-      set(value) {
-        this.$store.commit('setUpdateInterval', value)
-      }
-    },
-    sourceSite: {
-      get() {
-        return this.$store.state.sourceSite
-      },
-      set(value) {
-        this.$store.commit('setSourceSite', value)
-      }
-    },
-    sort: {
-      get() {
-        return this.$store.state.sort
-      },
-      set(value) {
-        this.$store.commit('setSort', value)
-      }
-    },
-    sortOrder: {
-      get() {
-        return this.$store.state.sortOrder
-      },
-      set(value) {
-        this.$store.commit('setSortOrder', value)
-      }
-    },
-    displayedNews() {
-      const startIndex = (this.currentPage - 1) * this.newsPerPage
-      const endIndex = startIndex + this.newsPerPage
+const store = useStore();
 
-      const newsArray = Array.isArray(this.news) ? this.news : []
-      return newsArray.slice(startIndex, endIndex)
-    }
-  },
-  methods: {
-    async fetchNews() {
-      this.isLoading = true
-      await this.$store.dispatch('fetchNews')
-      this.isLoading = false
-    },
-    handleNewsPerPageChange() {
-      this.currentPage = 1
-    },
-    handleUpdateIntervalChange() {
-      this.stopInterval()
-      this.startInterval()
-    },
-    handleSourceSiteChange() {
-      this.currentPage = 1
-    },
-    handleSortChange() {
-      this.currentPage = 1
-    },
-    handleSortOrderChange() {
-      this.currentPage = 1
-    },
-    startInterval() {
-      this.intervalId = setInterval(() => {
-        const newRatings = this.getNewRatings()
-        this.$store.commit('updateNewsRatings', newRatings)
-      }, this.updateInterval * 1000)
-    },
-    stopInterval() {
-      clearInterval(this.intervalId)
-    },
-    async deleteNews(id) {
-      try {
-        await axios.delete(`${API_BASE_URL}api/parsed_news/${id}`)
-        this.$store.commit('setNews', this.news.filter(item => item.id !== id))
-      } catch (error) {
-        console.error('Error deleting news:', error)
-      }
-    },
-    loadMore() {
-      this.currentPage++
-    },
-    getNewRatings() {
-      return this.news.map(newsItem => ({
-        id: newsItem.id,
-        rating: Math.floor(Math.random() * 11)
-      }))
-    },
-  },
-  mounted() {
-    this.fetchNews()
-    this.startInterval()
-  },
-  unmounted() {
-    this.stopInterval()
-  }
+const news = computed(() => store.getters.news);
+store.dispatch('fetchNews');
+
+let newsPerPage = store.getters.newsPerPage
+let updateInterval = store.getters.updateInterval
+let sourceSite = store.getters.sourceSite
+let sortBy = store.getters.sortBy
+let sortOrder = store.getters.sortOrder
+let newsSourceSites = store.getters.newsSourceSites
+
+
+function handleNewsPerPageChange(){
+  store.dispatch('updateNewsPerPage', newsPerPage);
 }
+
+function handleUpdateIntervalChange(){
+  store.dispatch('updateUpdateInterval', updateInterval);
+}
+
+function handleSourceSiteChange(){
+  store.dispatch('updateSourceSite', sourceSite);
+}
+
+function handleSortChange(){
+  store.dispatch('updateSortBy', sortBy);
+}
+
+function handleSortOrderChange(){
+  store.dispatch('updateSortOrder', sortOrder);
+}
+
 </script>
 
 <style scoped>
 .news-control-block {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  row-gap: 10px;
 }
 .news-sort-block {
   display: flex;

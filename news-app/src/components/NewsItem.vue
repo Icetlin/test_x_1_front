@@ -17,33 +17,12 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: 'NewsItem',
-
-  props: {
-    news: Object
-  },
-  data() {
-    return {
-      previousRating: this.news.rating
-    }
-  },
-
-  computed: {
-    isRatingUp() {
-      return this.news.rating > this.previousRating
-    }
-  },
-  watch: {
-    news: {
-      handler(newValue, oldValue) {
-        this.previousRating = oldValue.rating
-      },
-      deep: true
-    }
-  }
-}
+<script setup>
+import { defineProps } from 'vue'
+defineProps({
+  news: Object
+})
+const isRatingUp = true
 </script>
 
 <style scoped>
